@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # Добавляет кнопку ручного запуска в интерфейсе GitHub
 
 jobs:
   publish-tauri:
@@ -10,31 +11,40 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: setup node
+      - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: install Linux dependencies
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          # Системные зависимости Tauri + инструменты для сборки RPM
-          sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf rpm
+          # Системные библиотеки для работы Tauri и инструмент rpm для сборки под РЕД ОС
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            webkit2gtk-4.0 \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            rpm
 
-      - name: install frontend dependencies
-        run: npm install
+      - name: Install frontend dependencies
+        run: npm install # Замените на yarn или pnpm, если используете их
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
+          tagName: v__VERSION__ # Версия возьмется из tauri.conf.json
           releaseName: "Release v__VERSION__"
           releaseDraft: true
-          # Эта настройка заставит экшен собрать все форматы из tauri.conf.json
-          args: --target x86_64-unknown-linux-gnu 
+          prerelease: false
+          # Принудительно собираем под Linux x86_64
+          args: --target x86_64-unknown-linux-gnu
